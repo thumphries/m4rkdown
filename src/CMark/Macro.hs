@@ -11,6 +11,7 @@ module CMark.Macro (
   , replaceString
   , rewriteNode
     -- * Queries
+  , Query
     -- * Low-level traversals
   , everywhereM
   , everywhereTopDownM
@@ -22,7 +23,8 @@ import           Control.Applicative
 import           Control.Foldl (FoldM)
 import qualified Control.Foldl as F
 import           Control.Monad
-import           Control.Monad.Trans.Class
+import           Control.Monad.IO.Class (MonadIO (..))
+import           Control.Monad.Trans.Class (MonadTrans (..))
 
 import           CMark
 import           CMark.Macro.Monad (FixT, runFixT)
@@ -30,6 +32,22 @@ import qualified CMark.Macro.Monad as FixT
 
 import           Data.Functor.Identity (Identity, runIdentity)
 import           Data.Text (Text)
+
+{-
+interface notes
+
+worthwhile to add Text -> m Text shorthand to skip cmark
+
+go balls to the wall - make it really easy to write html macros
+even if it means introducing extra types to express the arg parsing
+
+examples:
+react-style macros
+custom codeblocks
+
+
+
+-}
 
 
 {--
@@ -48,6 +66,7 @@ behaviour:
 
 basic use: replace certain things
 expert use: replace certain things with effectful functions (Either, or IO)
+expert use: gather certain things and delete them from the tree in one swoop
 anticipate fixpoints without re-parsing
 anticipate staged macros - collect from all, then update all
 
@@ -71,6 +90,9 @@ newtype MacroT m a =
 
 instance MonadTrans MacroT where
   lift m = MacroT (lift m)
+
+instance MonadIO m => MonadIO (MacroT m) where
+  liftIO m = MacroT (liftIO m)
 
 runMacroT :: Functor m => MacroT m a -> m a
 runMacroT =
