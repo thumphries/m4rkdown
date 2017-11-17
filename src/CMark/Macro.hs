@@ -19,10 +19,6 @@ module CMark.Macro (
   ) where
 
 
-import           Control.Applicative
-import           Control.Foldl (FoldM)
-import qualified Control.Foldl as F
-import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Trans.Class (MonadTrans (..))
 
@@ -33,21 +29,25 @@ import qualified CMark.Macro.Monad as FixT
 import           Data.Functor.Identity (Identity, runIdentity)
 import           Data.Text (Text)
 
-{-
+{--
+
 interface notes
 
 worthwhile to add Text -> m Text shorthand to skip cmark
+possibly with CmarkOptions since we aren't robust to changes in that
+interface anywya
 
-go balls to the wall - make it really easy to write html macros
-even if it means introducing extra types to express the arg parsing
+make it really easy to write html macros even if it means introducing
+extra types to express the arg parsing
 
 examples:
-react-style macros
+text replacement hijinks
+react-style macros - apply standard bulma thingos
 custom codeblocks
+text replace after prior macro expansion
+graft footnotes onto cmark with codeblocks
 
-
-
--}
+--}
 
 
 {--
@@ -71,7 +71,7 @@ anticipate fixpoints without re-parsing
 anticipate staged macros - collect from all, then update all
 
 
-API should be composable function with CMark nodes
+API should produce composable functions over CMark nodes
 
 monadic syntax (pipeline) abstracting FixT - expose shorthand for fix
 
@@ -92,7 +92,7 @@ instance MonadTrans MacroT where
   lift m = MacroT (lift m)
 
 instance MonadIO m => MonadIO (MacroT m) where
-  liftIO m = MacroT (liftIO m)
+  liftIO m = MacroT (lift (liftIO m))
 
 runMacroT :: Functor m => MacroT m a -> m a
 runMacroT =
@@ -138,7 +138,7 @@ rewriteNode =
 
 newtype Query m a =
   Query {
-      unQuery :: FoldM m Node a
+      unQuery :: FixT m a -- FoldM m Node a
     } deriving (Functor, Applicative)
 
 -- runQuery :: Applicative m => Query m a -> Node -> m a
