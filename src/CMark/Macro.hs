@@ -20,6 +20,7 @@ module CMark.Macro (
 
 import           Control.Applicative
 import           Control.Foldl (FoldM)
+import qualified Control.Foldl as F
 import           Control.Monad
 import           Control.Monad.Trans.Class
 
@@ -59,6 +60,8 @@ Foldl style CPS embedding over 'everything' - lift stuff into Macro monad
 
 MacroT - allow conflation of state and folds
 
+consider something implicit? add StateT to the stack?
+
 --}
 
 newtype MacroT m a =
@@ -67,7 +70,7 @@ newtype MacroT m a =
     } deriving (Functor, Applicative, Monad)
 
 instance MonadTrans MacroT where
-  lift m = MacroT (lift m) -- FIXME this is wrong
+  lift m = MacroT (lift m)
 
 runMacroT :: Functor m => MacroT m a -> m a
 runMacroT =
@@ -95,9 +98,9 @@ replaceString :: Text -> Text -> Node -> MacroT m Node
 replaceString inp out node =
   undefined
 
--- rewriteElement :: 
+-- rewriteElement :: (Text -> [(Text, Text)] -> [Node] -> Maybe Node) -> Node -> MacroT m Node
 
--- rewriteCodeBlock :: 
+-- rewriteCodeBlock :: (Text -> [Node] -> Maybe Node) -> Node -> MacroT m Node
 
 rewriteNode :: (Node -> Maybe Node) -> Node -> MacroT m Node
 rewriteNode =
@@ -107,11 +110,18 @@ rewriteNode =
 -- Queries
 
 -- these are just fancy foldMs that can be composed in applicative style
+-- have to reimplement FoldM to use everythingM instead
+-- the point is to let us extract a bunch of stuff in a single pass
+-- to be used in future macro phases
 
 newtype Query m a =
   Query {
       unQuery :: FoldM m Node a
     } deriving (Functor, Applicative)
+
+-- runQuery :: Applicative m => Query m a -> Node -> m a
+-- runQuery q n =
+--   F.foldM (unQuery q) (pure n)
 
 -- queryNodes :: Query m [Node]
 

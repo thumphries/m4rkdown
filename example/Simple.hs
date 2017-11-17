@@ -12,6 +12,6 @@ fooBar x =
 
 fooBarFix :: Node -> Node
 fooBarFix x =
-  runMacro $
-    fixpoint x $
-      replaceString "foobar" "bar"
+  runMacro $ do
+    y <- fixpoint x $ replaceString "foobar" "bar"
+    replaceString "bar" "baz" y
