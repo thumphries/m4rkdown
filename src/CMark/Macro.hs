@@ -19,11 +19,12 @@ module CMark.Macro (
 
 
 import           Control.Applicative
+import           Control.Foldl (FoldM)
 import           Control.Monad
 import           Control.Monad.Trans.Class
 
 import           CMark
-import           CMark.Macro.Monad (FixT)
+import           CMark.Macro.Monad (FixT, runFixT)
 import qualified CMark.Macro.Monad as FixT
 
 import           Data.Functor.Identity (Identity, runIdentity)
@@ -106,6 +107,14 @@ rewriteNode =
 -- Queries
 
 -- these are just fancy foldMs that can be composed in applicative style
+
+newtype Query m a =
+  Query {
+      unQuery :: FoldM m Node a
+    } deriving (Functor, Applicative)
+
+-- queryNodes :: Query m [Node]
+
 
 
 
