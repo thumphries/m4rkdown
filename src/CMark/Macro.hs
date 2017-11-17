@@ -19,6 +19,7 @@ module CMark.Macro (
   ) where
 
 
+import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Trans.Class (MonadTrans (..))
 
@@ -46,6 +47,7 @@ react-style macros - apply standard bulma thingos
 custom codeblocks
 text replace after prior macro expansion
 graft footnotes onto cmark with codeblocks
+includes
 
 --}
 
@@ -155,15 +157,29 @@ newtype Query m a =
 
 -- | Apply a monadic transformation everywhere in bottom-up manner
 everywhereM :: Monad m => (Node -> m Node) -> Node -> m Node
-everywhereM =
-  undefined
+everywhereM f =
+  go >=> f
+  where
+    go node =
+      case node of
+        Node mpos ntype ns ->
+          Node mpos ntype <$> traverse (go >=> f) ns
 
 -- | Apply a monadic transformation everywhere in top-down manner
 everywhereTopDownM :: Monad m => (Node -> m Node) -> Node -> m Node
-everywhereTopDownM =
-  undefined
+everywhereTopDownM f =
+  f >=> go
+  where
+    go node =
+      case node of
+        Node mpos ntype ns ->
+          Node mpos ntype <$> traverse (f >=> go) ns
 
 -- | Monadically summarise all nodes in top-down, left-to-right order
 everythingM :: Monad m => (r -> r -> m r) -> (Node -> m r) -> (Node -> m r)
-everythingM =
-  undefined
+everythingM f gather =
+  \node ->
+    case node of
+      Node mpos ntype ns -> do
+        l <- gather node
+        foldM (\r n -> f r =<< gather n) l ns
